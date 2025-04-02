@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import Book from '../models/book';
 import express from 'express';
 import bodyParser from 'body-parser';
+import { validateBookDetailsMiddleware, RequestWithSanitizedBookDetails } from '../sanitizers/bookSanitizer';
+import { appRateLimiter } from '../sanitizers/rateLimiter';
 
 const router = express.Router();
 
@@ -12,14 +14,16 @@ const router = express.Router();
  */
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(express.json());
+router.use(appRateLimiter);
+router.use(validateBookDetailsMiddleware);
 
 /**
  * @route POST /newbook
  * @returns a newly created book for an existing author and genre in the database
  * @returns 500 error if book creation failed
  */
-router.post('/', async (req: Request, res: Response) => {
-  const { familyName, firstName, genreName, bookTitle } = req.body;
+router.post('/', async (req: RequestWithSanitizedBookDetails, res: Response) => {
+  const { familyName, firstName, genreName, bookTitle } = req;
   if (familyName && firstName && genreName && bookTitle) {
     try {
       const book = new Book({});
